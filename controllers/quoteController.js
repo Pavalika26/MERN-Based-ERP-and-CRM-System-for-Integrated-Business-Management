@@ -60,6 +60,11 @@ const getQuote = async (req, res, next) => {
 // @access  Private
 const createQuote = async (req, res, next) => {
   try {
+    // Auto-generate quote number if not provided
+    if (!req.body.quoteNumber) {
+      req.body.quoteNumber = `QT-${Math.floor(100000 + Math.random() * 900000)}`;
+    }
+
     // Auto-calculate item totals and grand total
     if (req.body.items && Array.isArray(req.body.items)) {
       req.body.items = req.body.items.map((item) => ({
