@@ -12,7 +12,16 @@ const app = express();
 
 // ─── Global Middleware ───────────────────────────────────────────────────────
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || '*',
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    // Automatically trust any Vercel deployment URL
+    if (origin.endsWith('.vercel.app') || origin === process.env.CLIENT_ORIGIN) {
+      return callback(null, true);
+    }
+    
+    return callback(new Error('Blocked by CORS'));
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
