@@ -68,6 +68,11 @@ const getInvoice = async (req, res, next) => {
 // @access  Private
 const createInvoice = async (req, res, next) => {
   try {
+    // Auto-generate invoice number if not provided
+    if (!req.body.invoiceNumber) {
+      req.body.invoiceNumber = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
+    }
+
     // Auto-calculate item totals and grand total
     if (req.body.items && Array.isArray(req.body.items)) {
       req.body.items = req.body.items.map((item) => ({

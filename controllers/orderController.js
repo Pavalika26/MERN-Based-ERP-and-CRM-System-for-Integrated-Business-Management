@@ -56,6 +56,11 @@ const getOrder = async (req, res, next) => {
 // @route   POST /api/orders
 const createOrder = async (req, res, next) => {
   try {
+    // Auto-generate order number if not provided
+    if (!req.body.orderNumber) {
+      req.body.orderNumber = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
+    }
+
     // Auto-calculate item totals and grand total
     if (req.body.products && Array.isArray(req.body.products)) {
       req.body.products = req.body.products.map((item) => ({
