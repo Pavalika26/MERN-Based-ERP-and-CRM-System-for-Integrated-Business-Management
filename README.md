@@ -36,8 +36,8 @@ A comprehensive, full-stack Enterprise Resource Planning (ERP) and Customer Rela
 
 ## 🚀 Live Demo
 
-- **Frontend (Vercel):** *Your-Vercel-Link-Here*
-- **Backend API (Render):** *Your-Render-Link-Here*
+- **Frontend (Vercel):** https://mern-based-erp-and-crm-system-for-integrated-busines-qap03p06i.vercel.app/login
+- **Backend API (Render):** https://mern-based-erp-and-crm-system-for.onrender.com
 
 ## ⚙️ Local Installation
 
