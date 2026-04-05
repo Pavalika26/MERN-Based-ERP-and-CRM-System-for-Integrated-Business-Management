@@ -191,7 +191,7 @@ const Orders = () => {
           <Space size="large" style={{ display: 'flex', width: '100%' }}>
             <Form.Item name="customer" label="Customer" rules={[{ required: true }]} style={{ width: 300 }}>
               <Select placeholder="Select a customer">
-                {customers.map((c) => (
+                {(customers || []).map((c) => (
                   <Option key={c._id} value={c._id}>
                     {c.name}
                   </Option>
@@ -230,7 +230,7 @@ const Orders = () => {
                         style={{ width: 250 }}
                         onChange={(val) => handleProductChange(val, name)}
                       >
-                        {products.map(p => (
+                        {(products || []).map(p => (
                           <Option key={p._id} value={p._id}>
                             {p.name} (Stock: {p.stock})
                           </Option>

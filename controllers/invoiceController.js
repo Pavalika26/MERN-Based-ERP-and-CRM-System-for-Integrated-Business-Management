@@ -10,7 +10,13 @@ const getInvoices = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const filter = {};
-    if (req.query.status) filter.status = req.query.status;
+    if (req.query.status) {
+      if (req.query.status.includes(',')) {
+        filter.status = { $in: req.query.status.split(',') };
+      } else {
+        filter.status = req.query.status;
+      }
+    }
     if (req.query.customer) filter.customer = req.query.customer;
     if (req.query.search) {
       filter.invoiceNumber = { $regex: req.query.search, $options: 'i' };
