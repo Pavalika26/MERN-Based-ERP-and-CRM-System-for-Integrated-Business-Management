@@ -1,62 +1,189 @@
-import { Table, Tag, Button, Space, Input } from 'antd';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { useState, useEffect } from 'react';
+import {
+  Table,
+  Button,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Space,
+  Tag,
+  Popconfirm,
+  message,
+  Typography,
+} from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import API from '../api/axios';
 
-const data = [
-  { key: '1', name: 'Acme Corp',       contact: 'john@acme.com',     status: 'New',           value: 12000, source: 'Website' },
-  { key: '2', name: 'Globex Inc',      contact: 'sara@globex.com',   status: 'Contacted',     value: 8500,  source: 'Referral' },
-  { key: '3', name: 'Stark Industries',contact: 'tony@stark.com',    status: 'Qualified',     value: 45000, source: 'LinkedIn' },
-  { key: '4', name: 'Wayne Enterprises', contact: 'bruce@wayne.com', status: 'Proposal Sent', value: 32000, source: 'Cold Call' },
-  { key: '5', name: 'Umbrella Corp',   contact: 'alice@umbrella.com',status: 'Negotiation',   value: 19500, source: 'Website' },
-];
+const { Title } = Typography;
+const { Option } = Select;
 
-const statusColors = {
-  New: 'blue', Contacted: 'cyan', Qualified: 'green',
-  'Proposal Sent': 'orange', Negotiation: 'purple',
+const Leads = () => {
+  const [leads, setLeads] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form] = Form.useForm();
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await API.get('/leads?limit=100');
+      setLeads(res.data.data);
+    } catch (error) {
+      message.error('Failed to fetch leads');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const showModal = (record = null) => {
+    setIsModalVisible(true);
+    if (record) {
+      setEditingId(record._id);
+      form.setFieldsValue({ ...record });
+    } else {
+      setEditingId(null);
+      form.resetFields();
+      form.setFieldsValue({ status: 'new', source: 'website' });
+    }
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+    form.resetFields();
+  };
+
+  const onFinish = async (values) => {
+    try {
+      if (editingId) {
+        await API.put(`/leads/${editingId}`, values);
+        message.success('Lead updated successfully');
+      } else {
+        await API.post('/leads', values);
+        message.success('Lead added successfully');
+      }
+      setIsModalVisible(false);
+      fetchData();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Operation failed');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await API.delete(`/leads/${id}`);
+      message.success('Lead deleted');
+      fetchData();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Delete failed');
+    }
+  };
+
+  const columns = [
+    { title: 'Name', dataIndex: 'name', key: 'name' },
+    { title: 'Email', dataIndex: 'email', key: 'email' },
+    { title: 'Phone', dataIndex: 'phone', key: 'phone' },
+    {
+      title: 'Source',
+      dataIndex: 'source',
+      key: 'source',
+      render: (text) => text?.toUpperCase() || '-',
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => {
+        const colors = { new: 'blue', contacted: 'orange', converted: 'green' };
+        return <Tag color={colors[status]}>{status?.toUpperCase()}</Tag>;
+      },
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_, record) => (
+        <Space>
+          <Button icon={<EditOutlined />} onClick={() => showModal(record)} />
+          <Popconfirm title="Delete this lead?" onConfirm={() => handleDelete(record._id)}>
+            <Button danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+        <Title level={3}>Sales Leads</Title>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>
+          Add Lead
+        </Button>
+      </div>
+
+      <Table dataSource={leads} columns={columns} rowKey="_id" loading={loading} scroll={{ x: 800 }} />
+
+      <Modal
+        title={editingId ? 'Edit Lead' : 'Add Lead'}
+        open={isModalVisible}
+        onCancel={handleCancel}
+        footer={null}
+      >
+        <Form form={form} layout="vertical" onFinish={onFinish}>
+          <Form.Item name="name" label="Lead Name" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          
+          <Space size="large" style={{ display: 'flex' }}>
+            <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]} style={{ width: 200 }}>
+              <Input />
+            </Form.Item>
+            <Form.Item name="phone" label="Phone" style={{ width: 200 }}>
+              <Input />
+            </Form.Item>
+          </Space>
+
+          <Space size="large" style={{ display: 'flex' }}>
+            <Form.Item name="status" label="Status" rules={[{ required: true }]} style={{ width: 200 }}>
+              <Select>
+                <Option value="new">New</Option>
+                <Option value="contacted">Contacted</Option>
+                <Option value="converted">Converted</Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="source" label="Source" style={{ width: 200 }}>
+              <Select>
+                <Option value="website">Website</Option>
+                <Option value="referral">Referral</Option>
+                <Option value="cold_call">Cold Call</Option>
+                <Option value="event">Event</Option>
+                <Option value="other">Other</Option>
+              </Select>
+            </Form.Item>
+          </Space>
+
+          <Form.Item name="assignedTo" label="Assigned Rep">
+            <Input placeholder="E.g. Sales Rep Name" />
+          </Form.Item>
+
+          <Form.Item style={{ textAlign: 'right', marginTop: 16 }}>
+            <Button onClick={handleCancel} style={{ marginRight: 8 }}>
+              Cancel
+            </Button>
+            <Button type="primary" htmlType="submit">
+              {editingId ? 'Update' : 'Save'}
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
 };
-
-const columns = [
-  { title: 'Company', dataIndex: 'name', key: 'name', sorter: (a, b) => a.name.localeCompare(b.name) },
-  { title: 'Contact', dataIndex: 'contact', key: 'contact' },
-  {
-    title: 'Status',
-    dataIndex: 'status',
-    key: 'status',
-    render: (s) => <Tag color={statusColors[s]}>{s}</Tag>,
-    filters: Object.keys(statusColors).map((s) => ({ text: s, value: s })),
-    onFilter: (val, record) => record.status === val,
-  },
-  {
-    title: 'Value',
-    dataIndex: 'value',
-    key: 'value',
-    render: (v) => `$${v.toLocaleString()}`,
-    sorter: (a, b) => a.value - b.value,
-  },
-  { title: 'Source', dataIndex: 'source', key: 'source' },
-  {
-    title: 'Action',
-    key: 'action',
-    render: () => (
-      <Space>
-        <Button type="link" size="small">View</Button>
-        <Button type="link" size="small">Edit</Button>
-      </Space>
-    ),
-  },
-];
-
-const Leads = () => (
-  <>
-    <div className="page-header">
-      <h1>Leads</h1>
-      <p>Track and manage your sales pipeline.</p>
-    </div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-      <Input placeholder="Search leads…" prefix={<SearchOutlined />} style={{ width: 280 }} />
-      <Button type="primary" icon={<PlusOutlined />}>Add Lead</Button>
-    </div>
-    <Table columns={columns} dataSource={data} className="glass-card" pagination={{ pageSize: 10 }} />
-  </>
-);
 
 export default Leads;
