@@ -20,6 +20,7 @@ const { Option } = Select;
 
 const Leads = () => {
   const [leads, setLeads] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -28,8 +29,12 @@ const Leads = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await API.get('/leads?limit=100');
-      setLeads(res.data.data);
+      const [leadsRes, empRes] = await Promise.all([
+        API.get('/leads?limit=100'),
+        API.get('/employees?limit=100').catch(() => ({ data: { data: [] } })), // Silent fail if employees endpoint is inaccessible
+      ]);
+      setLeads(leadsRes.data.data);
+      setEmployees(empRes.data.data);
     } catch (error) {
       message.error('Failed to fetch leads');
     } finally {
@@ -45,7 +50,10 @@ const Leads = () => {
     setIsModalVisible(true);
     if (record) {
       setEditingId(record._id);
-      form.setFieldsValue({ ...record });
+      form.setFieldsValue({
+        ...record,
+        assignedTo: record.assignedTo?._id || record.assignedTo,
+      });
     } else {
       setEditingId(null);
       form.resetFields();
@@ -60,11 +68,16 @@ const Leads = () => {
 
   const onFinish = async (values) => {
     try {
+      const payload = { ...values };
+      if (!payload.assignedTo) {
+        delete payload.assignedTo;
+      }
+
       if (editingId) {
-        await API.put(`/leads/${editingId}`, values);
+        await API.put(`/leads/${editingId}`, payload);
         message.success('Lead updated successfully');
       } else {
-        await API.post('/leads', values);
+        await API.post('/leads', payload);
         message.success('Lead added successfully');
       }
       setIsModalVisible(false);
@@ -169,7 +182,13 @@ const Leads = () => {
           </Space>
 
           <Form.Item name="assignedTo" label="Assigned Rep">
-            <Input placeholder="E.g. Sales Rep Name" />
+            <Select placeholder="Select a Sales Rep" allowClear>
+              {employees.map((emp) => (
+                <Option key={emp._id} value={emp._id}>
+                  {emp.name}
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <Form.Item style={{ textAlign: 'right', marginTop: 16 }}>
